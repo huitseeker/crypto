@@ -7,6 +7,7 @@
 - [BREAKING] Rename `smt_hashmaps` feature to `hashmaps` ([#442](https://github.com/0xMiden/crypto/issues/442)).
 - [BREAKING] Refactor `parse_hex_string_as_word()` to `Word::parse()` ([#450](https://github.com/0xMiden/crypto/issues/450)).
 - `Smt.insert_inner_nodes` does not store empty subtrees ([#452](https://github.com/0xMiden/crypto/pull/452)).
+- [BREAKING] Remove public key from Falcon signature ([#460])(https://github.com/0xMiden/crypto/pull/460).
 
 # 0.15.8 (2025-07-21)
 
