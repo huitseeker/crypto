@@ -313,14 +313,14 @@ unsafe fn avx2_store(buf: &mut [u64; 12], state: (__m256i, __m256i, __m256i)) {
     _mm256_storeu_si256((&mut buf[8..12]).as_mut_ptr().cast::<__m256i>(), state.2);
 }
 
-#[inline(always)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn apply_sbox(buffer: &mut [u64; 12]) {
     let mut state = avx2_load(&buffer);
     state = do_apply_sbox(state);
     avx2_store(buffer, state);
 }
 
-#[inline(always)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn apply_inv_sbox(buffer: &mut [u64; 12]) {
     let mut state = avx2_load(&buffer);
     state = do_apply_inv_sbox(state);
@@ -444,15 +444,19 @@ unsafe fn ext_mul(
 
 #[inline(always)]
 unsafe fn ext_exp7(a0: __m256i, a1: __m256i, a2: __m256i) -> (__m256i, __m256i, __m256i) {
-    let (x2_0, x2_1, x2_2) = ext_square(a0, a1, a2);
-    let (x4_0, x4_1, x4_2) = ext_square(x2_0, x2_1, x2_2);
-    let (x3_0, x3_1, x3_2) = ext_mul(x2_0, x2_1, x2_2, a0, a1, a2);
-    ext_mul(x3_0, x3_1, x3_2, x4_0, x4_1, x4_2)
+    unsafe {
+        let (x2_0, x2_1, x2_2) = ext_square(a0, a1, a2);
+        let (x4_0, x4_1, x4_2) = ext_square(x2_0, x2_1, x2_2);
+        let (x3_0, x3_1, x3_2) = ext_mul(x2_0, x2_1, x2_2, a0, a1, a2);
+        ext_mul(x3_0, x3_1, x3_2, x4_0, x4_1, x4_2)
+    }
 }
 
-#[inline(always)]
+#[target_feature(enable = "avx2")]
 pub unsafe fn apply_ext_round(buf: &mut [u64; 12]) {
-    let (mut a0, mut a1, mut a2) = load_ext(buf);
-    (a0, a1, a2) = ext_exp7(a0, a1, a2);
-    store_ext(buf, a0, a1, a2);
+    unsafe {
+        let (mut a0, mut a1, mut a2) = load_ext(buf);
+        (a0, a1, a2) = ext_exp7(a0, a1, a2);
+        store_ext(buf, a0, a1, a2);
+    }
 }

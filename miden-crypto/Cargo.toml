@@ -134,3 +134,8 @@ ignored = ["getrandom"]
 [[test]]
 name              = "rocksdb_large_smt"
 required-features = ["concurrent", "rocksdb"]
+
+[[test]]
+name              = "rescue_arch"
+path              = "tests/rescue_arch.rs"
+required-features = ["std"]

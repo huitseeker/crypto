@@ -192,14 +192,14 @@ unsafe fn store12(dst: &mut [u64; 12], s: State) {
     dst[8..12].copy_from_slice(&s.1);
 }
 
-#[inline(always)]
+#[target_feature(enable = "avx512f")]
 pub unsafe fn apply_sbox(buf: &mut [u64; 12]) {
     let s = load12(buf);
     let s = do_apply_sbox(s);
     store12(buf, s);
 }
 
-#[inline(always)]
+#[target_feature(enable = "avx512f")]
 pub unsafe fn apply_inv_sbox(buf: &mut [u64; 12]) {
     let s = load12(buf);
     let s = do_apply_inv_sbox(s);
@@ -324,15 +324,19 @@ unsafe fn ext_mul(
 
 #[inline(always)]
 unsafe fn ext_exp7(a0: __m512i, a1: __m512i, a2: __m512i) -> (__m512i, __m512i, __m512i) {
-    let (x2_0, x2_1, x2_2) = ext_square(a0, a1, a2);
-    let (x4_0, x4_1, x4_2) = ext_square(x2_0, x2_1, x2_2);
-    let (x3_0, x3_1, x3_2) = ext_mul(x2_0, x2_1, x2_2, a0, a1, a2);
-    ext_mul(x3_0, x3_1, x3_2, x4_0, x4_1, x4_2)
+    unsafe {
+        let (x2_0, x2_1, x2_2) = ext_square(a0, a1, a2);
+        let (x4_0, x4_1, x4_2) = ext_square(x2_0, x2_1, x2_2);
+        let (x3_0, x3_1, x3_2) = ext_mul(x2_0, x2_1, x2_2, a0, a1, a2);
+        ext_mul(x3_0, x3_1, x3_2, x4_0, x4_1, x4_2)
+    }
 }
 
-#[inline(always)]
+#[target_feature(enable = "avx512f")]
 pub unsafe fn apply_ext_round(buf: &mut [u64; 12]) {
-    let (mut a0, mut a1, mut a2) = load_ext(buf);
-    (a0, a1, a2) = ext_exp7(a0, a1, a2);
-    store_ext(buf, a0, a1, a2);
+    unsafe {
+        let (mut a0, mut a1, mut a2) = load_ext(buf);
+        (a0, a1, a2) = ext_exp7(a0, a1, a2);
+        store_ext(buf, a0, a1, a2);
+    }
 }
