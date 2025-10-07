@@ -160,6 +160,61 @@ impl SequentialCommit for PublicKey {
     }
 }
 
+// KEY AGREEMENT SCHEME IMPLEMENTATION
+// ================================================================================================
+
+impl crate::ecdh::KeyAgreementScheme for PublicKey {
+    type EphemeralSecretKey = crate::ecdh::k256::EphemeralSecretKey;
+    type EphemeralPublicKey = crate::ecdh::k256::EphemeralPublicKey;
+    type SecretKey = SecretKey;
+    type SharedSecret = crate::ecdh::k256::SharedSecret;
+
+    fn generate_ephemeral_keypair<R: rand::CryptoRng + rand::RngCore>(
+        &self,
+        rng: &mut R,
+    ) -> (Self::EphemeralSecretKey, Self::EphemeralPublicKey) {
+        // Generate K256 ephemeral keypair for use with this secp256k1 public key
+        let sk = crate::ecdh::k256::EphemeralSecretKey::with_rng(rng);
+        let pk = sk.public_key();
+        (sk, pk)
+    }
+
+    fn exchange_ephemeral_static(
+        &self,
+        ephemeral_sk: Self::EphemeralSecretKey,
+    ) -> Result<Self::SharedSecret, crate::ecdh::KeyAgreementError> {
+        // Perform ECDH between the ephemeral secret and this public key
+        Ok(ephemeral_sk.diffie_hellman(self.clone()))
+    }
+
+    fn exchange_static_ephemeral(
+        &self,
+        static_sk: &Self::SecretKey,
+        ephemeral_pk: &Self::EphemeralPublicKey,
+    ) -> Result<Self::SharedSecret, crate::ecdh::KeyAgreementError> {
+        // Use the existing method from SecretKey
+        Ok(static_sk.get_shared_secret(ephemeral_pk.clone()))
+    }
+
+    fn extract_key_material(
+        &self,
+        shared_secret: &Self::SharedSecret,
+        length: usize,
+    ) -> Result<Vec<u8>, crate::ecdh::KeyAgreementError> {
+        let hkdf = shared_secret.extract(None);
+        let mut buf = vec![0_u8; length];
+        hkdf.expand(&[], &mut buf)
+            .map_err(|_| crate::ecdh::KeyAgreementError::HkdfExpansionFailed)?;
+        Ok(buf)
+    }
+
+    fn dummy_public_key_for_secret_key(secret_key: &Self::SecretKey) -> Self {
+        // For K256/ECDSA, we can derive the public key directly from the secret key
+        // This creates a valid public key that corresponds to the secret key
+        secret_key.public_key()
+    }
+}
+
 #[derive(Debug, Error)]
 pub enum PublicKeyError {
     #[error("Could not recover the public key from the message and signature")]

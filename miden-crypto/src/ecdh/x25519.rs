@@ -21,7 +21,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     dsa::eddsa_25519::{PublicKey, SecretKey},
-    ecdh::KeyAgreementScheme,
+    ecdh::LegacyKeyAgreementScheme,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -152,7 +152,7 @@ impl Deserializable for EphemeralPublicKey {
 
 pub struct X25519;
 
-impl KeyAgreementScheme for X25519 {
+impl LegacyKeyAgreementScheme for X25519 {
     type EphemeralSecretKey = EphemeralSecretKey;
     type EphemeralPublicKey = EphemeralPublicKey;
 

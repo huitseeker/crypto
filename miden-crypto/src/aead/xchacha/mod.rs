@@ -21,7 +21,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     Felt,
-    aead::{AeadScheme, DataType, EncryptionError},
+    aead::{AeadScheme, DataType, EncryptionError, LegacyAeadScheme},
     utils::{
         ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable,
         bytes_to_elements_exact, elements_to_bytes,
@@ -317,12 +317,84 @@ impl Zeroize for SecretKey {
 
 impl ZeroizeOnDrop for SecretKey {}
 
+// DIRECT AEAD SCHEME IMPLEMENTATION
+// ================================================================================================
+
+impl crate::aead::AeadScheme for SecretKey {
+    const KEY_SIZE: usize = SK_SIZE_BYTES;
+
+    type Key = SecretKey;
+
+    fn key_from_bytes(bytes: &[u8]) -> Result<Self::Key, EncryptionError> {
+        if bytes.len() != SK_SIZE_BYTES {
+            return Err(EncryptionError::FailedOperation);
+        }
+
+        let inner: [u8; SK_SIZE_BYTES] =
+            bytes.try_into().map_err(|_| EncryptionError::FailedOperation)?;
+        Ok(SecretKey(inner))
+    }
+
+    fn encrypt_bytes<R: rand::CryptoRng + rand::RngCore>(
+        key: &Self::Key,
+        rng: &mut R,
+        plaintext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError> {
+        let nonce = Nonce::with_rng(rng);
+        let encrypted_data = key
+            .encrypt_bytes_with_nonce(plaintext, associated_data, nonce)
+            .map_err(|_| EncryptionError::FailedOperation)?;
+        Ok(encrypted_data.to_bytes())
+    }
+
+    fn decrypt_bytes_with_associated_data(
+        key: &Self::Key,
+        ciphertext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError> {
+        let encrypted_data = EncryptedData::read_from_bytes(ciphertext)
+            .map_err(|_| EncryptionError::FailedOperation)?;
+        key.decrypt_bytes_with_associated_data(&encrypted_data, associated_data)
+            .map_err(|_| EncryptionError::FailedOperation)
+    }
+}
+
+// Legacy trait implementation for backward compatibility
+impl crate::aead::LegacyAeadScheme for SecretKey {
+    const KEY_SIZE: usize = SK_SIZE_BYTES;
+
+    fn encrypt_bytes_with_associated_data<R: rand::CryptoRng + rand::RngCore>(
+        &self,
+        rng: &mut R,
+        plaintext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError> {
+        let nonce = Nonce::with_rng(rng);
+        let encrypted_data = self
+            .encrypt_bytes_with_nonce(plaintext, associated_data, nonce)
+            .map_err(|_| EncryptionError::FailedOperation)?;
+        Ok(encrypted_data.to_bytes())
+    }
+
+    fn decrypt_bytes_with_associated_data(
+        &self,
+        ciphertext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError> {
+        let encrypted_data = EncryptedData::read_from_bytes(ciphertext)
+            .map_err(|_| EncryptionError::FailedOperation)?;
+        self.decrypt_bytes_with_associated_data(&encrypted_data, associated_data)
+            .map_err(|_| EncryptionError::FailedOperation)
+    }
+}
+
 // IES IMPLEMENTATION
 // ================================================================================================
 
 pub struct XChaCha;
 
-impl AeadScheme for XChaCha {
+impl LegacyAeadScheme for XChaCha {
     const KEY_SIZE: usize = SK_SIZE_BYTES;
 
     type Key = SecretKey;

@@ -19,5 +19,8 @@ mod message;
 mod tests;
 
 pub use error::IntegratedEncryptionSchemeError;
-pub use keys::{SealingKey, UnsealingKey};
-pub use message::SealedMessage;
+// Temporarily keep keys commented until we complete the test porting
+// TODO: Re-enable when refactored to use direct trait implementations
+// pub use keys::{SealingKey, UnsealingKey};
+// TODO: Re-enable when refactored to use direct trait implementations
+// pub use message::SealedMessage;

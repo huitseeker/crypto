@@ -30,11 +30,122 @@ impl TryFrom<u8> for DataType {
     }
 }
 
-// AEAD TRAIT
+// AEAD TRAITS
 // ================================================================================================
 
 /// Authenticated encryption with associated data (AEAD) scheme
+/// Implemented directly on secret key structs
 pub(crate) trait AeadScheme {
+    const KEY_SIZE: usize;
+
+    type Key: Deserializable + Zeroize + ZeroizeOnDrop;
+
+    /// Create an AEAD key from bytes (typically derived from ECDH shared secret)
+    fn key_from_bytes(bytes: &[u8]) -> Result<Self::Key, EncryptionError>;
+
+    // BYTE METHODS
+    // ================================================================================================
+
+    /// Encrypts bytes with associated data using the provided key
+    fn encrypt_bytes<R: rand::CryptoRng + rand::RngCore>(
+        key: &Self::Key,
+        rng: &mut R,
+        plaintext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError>;
+
+    /// Decrypts bytes with associated data using the provided key
+    fn decrypt_bytes_with_associated_data(
+        key: &Self::Key,
+        ciphertext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError>;
+
+    // FELT METHODS
+    // ================================================================================================
+
+    /// Encrypts field elements with associated data. Default implementation converts to bytes.
+    fn encrypt_elements<R: rand::CryptoRng + rand::RngCore>(
+        key: &Self::Key,
+        rng: &mut R,
+        plaintext: &[Felt],
+        associated_data: &[Felt],
+    ) -> Result<Vec<u8>, EncryptionError> {
+        let plaintext_bytes = crate::utils::elements_to_bytes(plaintext);
+        let ad_bytes = crate::utils::elements_to_bytes(associated_data);
+
+        Self::encrypt_bytes(key, rng, &plaintext_bytes, &ad_bytes)
+    }
+
+    /// Decrypts field elements with associated data. Default implementation uses byte decryption.
+    fn decrypt_elements_with_associated_data(
+        key: &Self::Key,
+        ciphertext: &[u8],
+        associated_data: &[Felt],
+    ) -> Result<Vec<Felt>, EncryptionError> {
+        let ad_bytes = crate::utils::elements_to_bytes(associated_data);
+        let plaintext_bytes = Self::decrypt_bytes_with_associated_data(key, ciphertext, &ad_bytes)?;
+
+        match crate::utils::bytes_to_elements_exact(&plaintext_bytes) {
+            Some(elements) => Ok(elements),
+            None => Err(EncryptionError::FailedBytesToElementsConversion),
+        }
+    }
+}
+
+/// Legacy AEAD trait for backward compatibility
+///
+/// DEPRECATED: This trait represents the old insecure design where fixed keys are used
+/// directly without deriving them from shared secrets. Use the new AeadScheme trait instead.
+#[deprecated(note = "Use AeadScheme with proper key derivation instead")]
+pub trait LegacyAeadScheme {
+    const KEY_SIZE: usize;
+
+    /// Encrypts bytes with associated data using this key
+    fn encrypt_bytes_with_associated_data<R: rand::CryptoRng + rand::RngCore>(
+        &self,
+        rng: &mut R,
+        plaintext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError>;
+
+    /// Decrypts bytes with associated data using this key
+    fn decrypt_bytes_with_associated_data(
+        &self,
+        ciphertext: &[u8],
+        associated_data: &[u8],
+    ) -> Result<Vec<u8>, EncryptionError>;
+
+    /// Encrypts field elements with associated data. Default implementation converts to bytes.
+    fn encrypt_elements_with_associated_data<R: rand::CryptoRng + rand::RngCore>(
+        &self,
+        rng: &mut R,
+        plaintext: &[Felt],
+        associated_data: &[Felt],
+    ) -> Result<Vec<u8>, EncryptionError> {
+        let plaintext_bytes = crate::utils::elements_to_bytes(plaintext);
+        let ad_bytes = crate::utils::elements_to_bytes(associated_data);
+        self.encrypt_bytes_with_associated_data(rng, &plaintext_bytes, &ad_bytes)
+    }
+
+    /// Decrypts field elements with associated data. Default implementation uses byte decryption.
+    fn decrypt_elements_with_associated_data(
+        &self,
+        ciphertext: &[u8],
+        associated_data: &[Felt],
+    ) -> Result<Vec<Felt>, EncryptionError> {
+        let ad_bytes = crate::utils::elements_to_bytes(associated_data);
+        let plaintext_bytes = self.decrypt_bytes_with_associated_data(ciphertext, &ad_bytes)?;
+
+        match crate::utils::bytes_to_elements_exact(&plaintext_bytes) {
+            Some(elements) => Ok(elements),
+            None => Err(EncryptionError::FailedBytesToElementsConversion),
+        }
+    }
+}
+
+/// Legacy AEAD trait for backward compatibility
+pub(crate) trait LegacyAeadScheme {
     const KEY_SIZE: usize;
 
     type Key: Deserializable + Zeroize + ZeroizeOnDrop;

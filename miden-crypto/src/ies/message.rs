@@ -1,8 +1,8 @@
-use alloc::vec::Vec;
 use core::convert::TryFrom;
 
-use super::{error::IntegratedEncryptionSchemeError, keys::EphemeralPublicKey};
-use crate::utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable};
+// TODO: Re-enable when refactored to use direct trait implementations
+// use super::{error::IntegratedEncryptionSchemeError, keys::EphemeralPublicKey};
+use super::error::IntegratedEncryptionSchemeError;
 
 /// Supported algorithms for IES
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,63 +50,15 @@ impl IesAlgorithm {
     }
 }
 
-/// A sealed message containing encrypted data
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SealedMessage {
-    /// Ephemeral public key (determines algorithm and provides key material)
-    pub(crate) ephemeral_key: EphemeralPublicKey,
-    /// Encrypted ciphertext with authentication tag and nonce
-    pub(crate) ciphertext: Vec<u8>,
-}
+// TODO: Refactor SealedMessage to use direct trait implementations
+// #[derive(Debug, Clone, PartialEq, Eq)]
+// pub struct SealedMessage {
+//     /// Ephemeral public key (determines algorithm and provides key material)
+//     pub(crate) ephemeral_key: EphemeralPublicKey,
+//     /// Encrypted ciphertext with authentication tag and nonce
+//     pub(crate) ciphertext: Vec<u8>,
+// }
 
-impl SealedMessage {
-    /// Get the algorithm used to create this sealed message
-    pub(crate) fn algorithm(&self) -> IesAlgorithm {
-        self.ephemeral_key.algorithm()
-    }
-
-    /// Get the algorithm name used to create this sealed message
-    pub fn algorithm_name(&self) -> &'static str {
-        self.algorithm().name()
-    }
-}
-
-// SERIALIZATION / DESERIALIZATION
-// ================================================================================================
-
-impl Serializable for SealedMessage {
-    fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        let algorithm = self.algorithm();
-        target.write_u8(algorithm as u8);
-
-        let eph_key_bytes = self.ephemeral_key.to_bytes();
-        target.write_usize(eph_key_bytes.len());
-        target.write_bytes(&eph_key_bytes);
-
-        target.write_usize(self.ciphertext.len());
-        target.write_bytes(&self.ciphertext);
-    }
-}
-
-impl Deserializable for SealedMessage {
-    fn read_from<R: ByteReader>(source: &mut R) -> Result<Self, DeserializationError> {
-        let algorithm = match IesAlgorithm::try_from(source.read_u8()?) {
-            Ok(a) => a,
-            Err(_) => {
-                return Err(DeserializationError::InvalidValue("Unsupported algorithm".into()));
-            },
-        };
-
-        let eph_key_len = source.read_usize()?;
-        let eph_key_bytes = source.read_vec(eph_key_len)?;
-        let ephemeral_key =
-            EphemeralPublicKey::from_bytes(algorithm, &eph_key_bytes).map_err(|e| {
-                DeserializationError::InvalidValue(format!("Invalid ephemeral key: {e}"))
-            })?;
-
-        let ciphertext_len = source.read_usize()?;
-        let ciphertext = source.read_vec(ciphertext_len)?;
-
-        Ok(Self { ephemeral_key, ciphertext })
-    }
-}
+// TODO: Re-enable serialization when refactored to use direct trait implementations
+// impl Serializable for SealedMessage { ... }
+// impl Deserializable for SealedMessage { ... }

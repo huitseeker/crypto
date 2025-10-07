@@ -10,10 +10,49 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 pub mod k256;
 pub mod x25519;
 
-// KEY AGREEMENT TRAIT
+// KEY AGREEMENT TRAITS
 // ================================================================================================
 
+/// Key agreement scheme implemented directly on public key structs
 pub trait KeyAgreementScheme {
+    type EphemeralSecretKey: ZeroizeOnDrop;
+    type EphemeralPublicKey: Serializable + Deserializable;
+    type SecretKey;
+    type SharedSecret: AsRef<[u8]> + Zeroize + ZeroizeOnDrop;
+
+    /// Generate an ephemeral keypair for key agreement with this public key's curve
+    fn generate_ephemeral_keypair<R: CryptoRng + RngCore>(
+        &self,
+        rng: &mut R,
+    ) -> (Self::EphemeralSecretKey, Self::EphemeralPublicKey);
+
+    /// Perform key exchange between an ephemeral secret key and this public key
+    fn exchange_ephemeral_static(
+        &self,
+        ephemeral_sk: Self::EphemeralSecretKey,
+    ) -> Result<Self::SharedSecret, KeyAgreementError>;
+
+    /// Perform key exchange between a static secret key and an ephemeral public key
+    fn exchange_static_ephemeral(
+        &self,
+        static_sk: &Self::SecretKey,
+        ephemeral_pk: &Self::EphemeralPublicKey,
+    ) -> Result<Self::SharedSecret, KeyAgreementError>;
+
+    /// Extract key material from a shared secret
+    fn extract_key_material(
+        &self,
+        shared_secret: &Self::SharedSecret,
+        length: usize,
+    ) -> Result<Vec<u8>, KeyAgreementError>;
+
+    /// Create a dummy public key for use with secret key operations
+    /// This enables secure IES operations by allowing trait-based access to secret key methods
+    fn dummy_public_key_for_secret_key(secret_key: &Self::SecretKey) -> Self;
+}
+
+/// Legacy key agreement trait for backward compatibility
+pub trait LegacyKeyAgreementScheme {
     type EphemeralSecretKey: ZeroizeOnDrop;
     type EphemeralPublicKey: Serializable + Deserializable;
 

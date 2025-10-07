@@ -21,7 +21,7 @@ use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     dsa::ecdsa_k256_keccak::{PUBLIC_KEY_BYTES, PublicKey, SecretKey},
-    ecdh::KeyAgreementScheme,
+    ecdh::LegacyKeyAgreementScheme,
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -169,7 +169,7 @@ impl Deserializable for EphemeralPublicKey {
 
 pub struct K256;
 
-impl KeyAgreementScheme for K256 {
+impl LegacyKeyAgreementScheme for K256 {
     type EphemeralSecretKey = EphemeralSecretKey;
     type EphemeralPublicKey = EphemeralPublicKey;
 
