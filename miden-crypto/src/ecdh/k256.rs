@@ -12,7 +12,7 @@
 //! The public key associated with the ephemeral secret key will be sent alongside the encrypted
 //! message.
 
-use alloc::{string::ToString, vec::Vec};
+use alloc::string::ToString;
 
 use hkdf::{Hkdf, hmac::SimpleHmac};
 use k256::{AffinePoint, elliptic_curve::sec1::ToEncodedPoint, sha2::Sha256};
@@ -20,8 +20,7 @@ use rand::{CryptoRng, RngCore};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
-    dsa::ecdsa_k256_keccak::{PUBLIC_KEY_BYTES, PublicKey, SecretKey},
-    ecdh::LegacyKeyAgreementScheme,
+    dsa::ecdsa_k256_keccak::{PUBLIC_KEY_BYTES, PublicKey},
     utils::{ByteReader, ByteWriter, Deserializable, DeserializationError, Serializable},
 };
 
@@ -169,49 +168,8 @@ impl Deserializable for EphemeralPublicKey {
 
 pub struct K256;
 
-impl LegacyKeyAgreementScheme for K256 {
-    type EphemeralSecretKey = EphemeralSecretKey;
-    type EphemeralPublicKey = EphemeralPublicKey;
-
-    type SecretKey = SecretKey;
-    type PublicKey = PublicKey;
-
-    type SharedSecret = SharedSecret;
-
-    fn generate_ephemeral_keypair<R: CryptoRng + RngCore>(
-        rng: &mut R,
-    ) -> (Self::EphemeralSecretKey, Self::EphemeralPublicKey) {
-        let sk = EphemeralSecretKey::with_rng(rng);
-        let pk = sk.public_key();
-
-        (sk, pk)
-    }
-
-    fn exchange_ephemeral_static(
-        ephemeral_sk: Self::EphemeralSecretKey,
-        static_pk: &Self::PublicKey,
-    ) -> Result<Self::SharedSecret, super::KeyAgreementError> {
-        Ok(ephemeral_sk.diffie_hellman(static_pk.clone()))
-    }
-
-    fn exchange_static_ephemeral(
-        static_sk: &Self::SecretKey,
-        ephemeral_pk: &Self::EphemeralPublicKey,
-    ) -> Result<Self::SharedSecret, super::KeyAgreementError> {
-        Ok(static_sk.get_shared_secret(ephemeral_pk.clone()))
-    }
-
-    fn extract_key_material(
-        shared_secret: &Self::SharedSecret,
-        length: usize,
-    ) -> Result<Vec<u8>, super::KeyAgreementError> {
-        let hkdf = shared_secret.extract(None);
-        let mut buf = vec![0_u8; length];
-        hkdf.expand(&[], &mut buf)
-            .map_err(|_| super::KeyAgreementError::HkdfExpansionFailed)?;
-        Ok(buf)
-    }
-}
+// LegacyKeyAgreementScheme implementation removed - now using direct KeyAgreementScheme on
+// PublicKey impl LegacyKeyAgreementScheme for K256 { ... }
 
 // TESTS
 // ================================================================================================

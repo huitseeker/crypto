@@ -51,39 +51,6 @@ pub trait KeyAgreementScheme {
     fn dummy_public_key_for_secret_key(secret_key: &Self::SecretKey) -> Self;
 }
 
-/// Legacy key agreement trait for backward compatibility
-pub trait LegacyKeyAgreementScheme {
-    type EphemeralSecretKey: ZeroizeOnDrop;
-    type EphemeralPublicKey: Serializable + Deserializable;
-
-    type SecretKey;
-    type PublicKey: Clone;
-
-    type SharedSecret: AsRef<[u8]> + Zeroize + ZeroizeOnDrop;
-
-    fn generate_ephemeral_keypair<R: CryptoRng + RngCore>(
-        rng: &mut R,
-    ) -> (Self::EphemeralSecretKey, Self::EphemeralPublicKey);
-
-    /// Perform key exchange between ephemeral secret and static public key
-    fn exchange_ephemeral_static(
-        ephemeral_sk: Self::EphemeralSecretKey,
-        static_pk: &Self::PublicKey,
-    ) -> Result<Self::SharedSecret, KeyAgreementError>;
-
-    /// Perform key exchange between static secret and ephemeral public key
-    fn exchange_static_ephemeral(
-        static_sk: &Self::SecretKey,
-        ephemeral_pk: &Self::EphemeralPublicKey,
-    ) -> Result<Self::SharedSecret, KeyAgreementError>;
-
-    /// Extract key material from shared secret
-    fn extract_key_material(
-        shared_secret: &Self::SharedSecret,
-        length: usize,
-    ) -> Result<Vec<u8>, KeyAgreementError>;
-}
-
 // ERROR TYPES
 // ================================================================================================
 
