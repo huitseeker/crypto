@@ -77,10 +77,11 @@ benchmark_with_setup_data!(
     |b: &mut Bencher<'_>,
      (merkle_path, sparse_path): &(MerklePath, miden_crypto::merkle::SparseMerklePath)| {
         b.iter(|| {
-            let merkle_nodes: Vec<_> = hint::black_box(merkle_path.iter()).collect();
-            let sparse_nodes: Vec<_> = hint::black_box(sparse_path.iter()).collect();
+            // Measure iteration performance using count instead of collect to avoid allocation
+            let merkle_count = hint::black_box(merkle_path.iter()).count();
+            let sparse_count = hint::black_box(sparse_path.iter()).count();
             // Ensure both iterators produce the same number of nodes
-            assert_eq!(merkle_nodes.len(), sparse_nodes.len());
+            assert_eq!(merkle_count, sparse_count);
         });
     }
 );

@@ -65,7 +65,7 @@ pub trait LiftedAir<F: Field, EF>: Sync + BaseAir<F> {
             return None;
         }
 
-        let max_period = cols.iter().map(|col| col.len()).max()?;
+        let max_period = cols.iter().map(Vec::len).max()?;
         let num_cols = cols.len();
 
         let mut values = Vec::with_capacity(max_period * num_cols);
@@ -231,6 +231,7 @@ pub trait LiftedAir<F: Field, EF>: Sync + BaseAir<F> {
         let mut builder = SymbolicAirBuilder::<F>::new(self.air_layout());
         self.eval(&mut builder);
 
+        #[allow(clippy::redundant_closure_for_method_calls)]
         let base_degree = builder
             .base_constraints()
             .iter()

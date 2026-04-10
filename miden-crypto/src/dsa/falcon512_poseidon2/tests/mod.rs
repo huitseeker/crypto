@@ -62,8 +62,9 @@ fn test_signature_gen_reference_impl() {
         let signature = sk.sign_with_rng_testing(message, &mut rng_shake);
 
         // 3. compare against the expected signature
+        #[allow(clippy::redundant_closure_for_method_calls)]
         let sig_coef: Vec<i16> =
-            signature.sig_poly().coefficients.iter().map(|c| c.balanced_value()).collect();
+            signature.sig_poly().coefficients.iter().map(|a| a.balanced_value()).collect();
         assert_eq!(sig_coef, EXPECTED_SIG_POLYS[i]);
 
         // 4. compare the encoded signatures including the nonce
