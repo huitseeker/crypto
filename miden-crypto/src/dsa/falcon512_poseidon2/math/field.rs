@@ -22,7 +22,7 @@ impl FalconFelt {
         self.0 as i16
     }
 
-    #[allow(clippy::trivially_copy_pass_by_ref)]
+    #[expect(clippy::trivially_copy_pass_by_ref)]
     pub fn balanced_value(&self) -> i16 {
         let value = self.value();
         let g = (value > ((MODULUS) / 2)) as i16;
