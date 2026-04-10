@@ -76,7 +76,7 @@ benchmark_with_setup_data!(
     },
     |b: &mut Bencher<'_>,
      (merkle_path, sparse_path): &(MerklePath, miden_crypto::merkle::SparseMerklePath)| {
-        #[allow(clippy::needless_collect)]
+        #[expect(clippy::needless_collect)]
         b.iter(|| {
             // Collect to exercise the full iterator and verify counts
             let merkle_nodes: Vec<_> = hint::black_box(merkle_path.iter()).collect();

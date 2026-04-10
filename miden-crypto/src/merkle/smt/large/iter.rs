@@ -116,7 +116,7 @@ impl<S: SmtStorage> Iterator for LargeSmtInnerNodeIterator<'_, S> {
                                 // Collect is necessary here because iter_inner_node_info returns
                                 // an iterator borrowing from next_subtree, which would outlive
                                 // the subtree itself. We need to eagerly evaluate to owned data.
-                                #[allow(clippy::needless_collect)]
+                                #[expect(clippy::needless_collect)]
                                 let infos: Vec<InnerNodeInfo> =
                                     next_subtree.iter_inner_node_info().collect();
                                 *current_subtree_node_iter = Some(Box::new(infos.into_iter()));

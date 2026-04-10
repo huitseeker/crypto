@@ -388,7 +388,7 @@ impl Deserializable for SecretKey {
 
         // big_g * f - g * big_f = p (mod X^n + 1)
         let big_g = g.fft().hadamard_div(&f.fft()).hadamard_mul(&big_f.fft()).ifft();
-        #[allow(clippy::redundant_closure_for_method_calls)]
+        #[expect(clippy::redundant_closure_for_method_calls)]
         let basis = [
             g.map(|f| f.balanced_value()),
             -f.map(|f| f.balanced_value()),

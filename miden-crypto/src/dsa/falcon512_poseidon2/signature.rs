@@ -225,7 +225,7 @@ impl TryFrom<&[i16; N]> for SignaturePoly {
 
 impl Serializable for &SignaturePoly {
     fn write_into<W: ByteWriter>(&self, target: &mut W) {
-        #[allow(clippy::redundant_closure_for_method_calls)]
+        #[expect(clippy::redundant_closure_for_method_calls)]
         let sig_coeff: Vec<i16> = self.0.coefficients.iter().map(|a| a.balanced_value()).collect();
         let mut sk_bytes = vec![0_u8; SIG_POLY_BYTE_LEN];
 

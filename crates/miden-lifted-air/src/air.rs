@@ -231,7 +231,7 @@ pub trait LiftedAir<F: Field, EF>: Sync + BaseAir<F> {
         let mut builder = SymbolicAirBuilder::<F>::new(self.air_layout());
         self.eval(&mut builder);
 
-        #[allow(clippy::redundant_closure_for_method_calls)]
+        #[expect(clippy::redundant_closure_for_method_calls)]
         let base_degree = builder
             .base_constraints()
             .iter()
